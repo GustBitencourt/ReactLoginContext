@@ -1,5 +1,6 @@
 import { useState, useEffect, createContext } from "react";
 import { useNavigate } from "react-router-dom";
+import {api, createSession} from "../services/api";
 
 export const AuthContext = createContext();
 
@@ -18,32 +19,37 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   }, [])
 
-  const login = (email, password) => {
-    console.log("LoginAuth", { email, password });
+  const login = async (email, password) => {
+    //vem do post da api
+    const response = await createSession(email, password);
 
-    //criando sessão com local storage
-    const loggedUser = {
-      id: '123',
-      email,
-      name: 'DigitalHouse',
-      lastname: 'Brasil'
-    }
+    console.log("LoginAuth", response.data);
+
+
+    //criando sessão com local storage - informações Vindas da Api
+    const loggedUser = response.data.user;
+    const token = response.data.token;
+
     //guardando no local storage
     localStorage.setItem("user", JSON.stringify(loggedUser));
+    localStorage.setItem("token", token);
 
-    if (email === "test@dh.com" && password === "dh123dh") {
-      setUser({ id: "123", email, name: 'DigitalHouse', lastname: 'Brasil' });
-      navigate("/");
-
-    } else {
-        console.log('Usuário ou senhas incorretos')
-    }
+    //informação passada pelo header
+    api.defaults.headers.Authorization = `Bearer ${token}`;
+    
+    setUser(loggedUser);
+    navigate("/");
+    
   };
 
   const logout = () => {
     console.log("Logout");
     //limpando localStorage
     localStorage.removeItem("user")
+    localStorage.removeItem("token")
+    
+    //retirando autorização do header
+    api.defaults.headers.Authorization = null;
     setUser(null);
     navigate("/login");
   };
